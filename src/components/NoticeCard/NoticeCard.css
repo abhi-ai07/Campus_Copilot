@@ -1,0 +1,88 @@
+.notice-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:24px;
+
+    padding:28px;
+
+    box-shadow:var(--shadow);
+
+    display:flex;
+    flex-direction:column;
+
+    transition:.3s ease;
+}
+
+.notice-card:hover{
+    transform:translateY(-6px);
+    box-shadow:0 16px 36px rgba(37,99,235,.12);
+}
+
+.notice-icon{
+    width:56px;
+    height:56px;
+
+    border-radius:18px;
+
+    background:#EFF6FF;
+    color:var(--primary);
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    font-size:26px;
+
+    margin-bottom:20px;
+}
+
+.notice-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+
+    margin-bottom:18px;
+}
+
+.notice-badge{
+    background:#EFF6FF;
+    color:var(--primary);
+
+    padding:7px 14px;
+
+    border-radius:999px;
+
+    font-size:13px;
+    font-weight:600;
+}
+
+.notice-date{
+    color:var(--text-light);
+    font-size:14px;
+}
+
+.notice-card h3{
+    font-size:24px;
+    line-height:1.3;
+
+    margin-bottom:14px;
+}
+
+.notice-card p{
+    color:var(--text-light);
+    line-height:1.75;
+
+    margin-bottom:24px;
+
+    flex:1;
+}
+
+.notice-link{
+    display:flex;
+    align-items:center;
+    gap:8px;
+
+    color:var(--primary);
+    font-weight:600;
+    font-size:15px;
+}

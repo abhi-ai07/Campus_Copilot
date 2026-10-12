@@ -1,0 +1,202 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap');
+
+/* ===========================
+   CampusCopilot V1 Design System
+   =========================== */
+
+:root{
+  /* Brand Colors */
+  --primary:#2563EB;
+  --primary-hover:#1D4ED8;
+
+  /* Backgrounds */
+  --background:#F8FAFC;
+  --surface:#FFFFFF;
+
+  /* Text */
+  --text:#0F172A;
+  --text-light:#64748B;
+
+  /* Border & Shadow */
+  --border:#E2E8F0;
+  --shadow:0 8px 24px rgba(15,23,42,.08);
+
+  /* Radius */
+  --radius:20px;
+
+  /* Typography */
+  --heading-font:"Space Grotesk",sans-serif;
+  --body-font:"Poppins",sans-serif;
+}
+
+/* ===========================
+   Global Reset
+   =========================== */
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+html{
+  scroll-behavior:smooth;
+}
+
+body{
+  font-family:var(--body-font);
+  background:var(--background);
+  color:var(--text);
+  line-height:1.6;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+/* Root container */
+#root{
+  min-height:100vh;
+}
+
+/* ===========================
+   Typography
+   =========================== */
+
+h1,h2,h3,h4,h5,h6{
+  font-family:var(--heading-font);
+  color:var(--text);
+  font-weight:700;
+}
+
+h1{
+  font-size:64px;
+  line-height:1.08;
+  letter-spacing:-2px;
+}
+
+h2{
+  font-size:40px;
+  line-height:1.15;
+  letter-spacing:-1px;
+}
+
+h3{
+  font-size:24px;
+}
+
+p{
+  color:var(--text-light);
+}
+
+/* ===========================
+   Links
+   =========================== */
+
+a{
+  text-decoration:none;
+  color:inherit;
+}
+
+/* ===========================
+   Buttons
+   =========================== */
+
+button{
+  font-family:inherit;
+  border:none;
+  background:none;
+  cursor:pointer;
+}
+
+/* ===========================
+   Reusable Container
+   =========================== */
+
+.container{
+  width:min(1280px,92%);
+  margin:0 auto;
+}
+
+/* ===========================
+   Utility Classes
+   =========================== */
+
+.section{
+  padding:90px 0;
+}
+
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+}
+
+/* ===========================
+   Responsive
+   =========================== */
+
+@media(max-width:1024px){
+
+  h1{
+    font-size:52px;
+  }
+
+  h2{
+    font-size:34px;
+  }
+
+}
+
+@media(max-width:768px){
+
+  .container{
+    width:92%;
+  }
+
+  h1{
+    font-size:42px;
+    line-height:1.15;
+    letter-spacing:-1px;
+  }
+
+  h2{
+    font-size:28px;
+  }
+
+  .section{
+    padding:60px 0;
+  }
+
+}
+
+@media(max-width:480px){
+
+  h1{
+    font-size:36px;
+  }
+
+  h2{
+    font-size:24px;
+  }
+
+}
+/* Page Load Animation */
+
+.fade-up{
+  opacity:0;
+  transform:translateY(30px);
+  animation:fadeUp .8s ease forwards;
+}
+
+.delay-1{animation-delay:.1s;}
+.delay-2{animation-delay:.2s;}
+.delay-3{animation-delay:.3s;}
+.delay-4{animation-delay:.4s;}
+
+@keyframes fadeUp{
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
+}

@@ -1,0 +1,44 @@
+.notices-preview{
+  background:var(--background);
+}
+
+.notices-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:24px;
+  align-items:stretch;
+}
+
+.notice-item{
+  height:100%;
+}
+
+.notice-item .notice-card{
+  height:100%;
+}
+
+.view-all{
+  text-align:center;
+  margin-top:40px;
+}
+
+.view-all a{
+  color:var(--primary);
+  font-size:17px;
+  font-weight:600;
+  transition:.25s ease;
+}
+
+.view-all a:hover{
+  color:var(--primary-hover);
+}
+
+@media(max-width:1024px){
+  .notices-grid{
+    grid-template-columns:1fr;
+  }
+
+  .notice-item{
+    height:auto;
+  }
+}
