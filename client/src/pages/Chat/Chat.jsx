@@ -130,7 +130,7 @@ function Chat() {
       setInput(question);
       inputRef.current?.focus();
     }
-  }, [location.key, sendQuestion]);
+  }, [location.key, location.state?.autoSend, location.state?.question, sendQuestion]);
 
   // Handle manual message submission
   function handleSend(event) {
