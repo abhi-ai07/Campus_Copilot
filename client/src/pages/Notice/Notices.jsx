@@ -9,6 +9,8 @@ import {
 } from "react-icons/fi";
 import "./Notices.css";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 function Notices() {
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +33,7 @@ function Notices() {
     try {
       setError("");
 
-      const response = await fetch("http://localhost:5000/api/notices");
+      const response = await fetch(`${API_BASE_URL}/api/notices`);
 
       if (!response.ok) {
         throw new Error("Unable to fetch notices.");

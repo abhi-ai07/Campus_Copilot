@@ -8,6 +8,8 @@ import {
 } from "react-icons/fi";
 import "./FAQ.css";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 function FAQ() {
   const [faqs, setFaqs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +33,7 @@ function FAQ() {
     try {
       setError("");
 
-      const response = await fetch("http://localhost:5000/api/faqs");
+      const response = await fetch(`${API_BASE_URL}/api/faqs`);
 
       if (!response.ok) {
         throw new Error("Unable to fetch FAQs.");
