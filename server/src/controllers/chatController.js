@@ -1,5 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
+import sanityClient from "../config/sanityClient.js";
 import { retrieveRelevantChunks } from "../services/knowledgeService.js";
+import { processPdfDocument } from "../services/documentProcessor.js";
 
 // Retry configuration
 const MAX_RETRIES = 2;
@@ -7,6 +9,8 @@ const INITIAL_RETRY_DELAY = 1500;
 const RETRYABLE_STATUS_CODES = [429, 500, 502, 503, 504];
 
 const MIN_RELEVANCE_SCORE = 0.7;
+const MAX_NOTICES = 5;
+const MAX_NOTICE_TEXT_LENGTH = 9000;
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -14,28 +18,115 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const GREETING_PATTERN =
   /^(hi+|hello+|hey+|hii+|good morning|good afternoon|good evening|namaste)[!.?,\s]*$/i;
 
-// Clearly general academic questions: RAG is not required
+// General academic questions
 const GENERAL_ACADEMIC_PATTERN =
   /^(what is|what are|define|explain|describe|meaning of|difference between|differentiate)\s+(dbms|normalization|data structure|operating system|computer network|artificial intelligence|machine learning|data mining|programming|python|java|javascript|html|css|sql|algorithm|compiler|database)\b/i;
+
+// Detect notice-related questions
+const NOTICE_INTENT_PATTERN =
+  /\b(notice|notices|circular|circulars|announcement|announcements|latest update|latest updates|college update|college updates)\b|नोटिस|सूचना|परिपत्र|घोषणा/i;
+
+const isNoticeQuestion = (message) => NOTICE_INTENT_PATTERN.test(message);
 
 // GEHU-first retrieval decision
 const shouldRetrieveCollegeKnowledge = (message) => {
   const question = message.trim();
 
-  if (GREETING_PATTERN.test(question)) {
-    return false;
-  }
+  if (GREETING_PATTERN.test(question)) return false;
+  if (GENERAL_ACADEMIC_PATTERN.test(question)) return false;
 
-  if (GENERAL_ACADEMIC_PATTERN.test(question)) {
-    return false;
-  }
-
-  // All other questions use GEHU knowledge by default.
   return true;
 };
 
+// Fetch latest published notices directly from Sanity
+const fetchLatestNotices = async () => {
+  return sanityClient.fetch(
+    `*[_type == "notice" && isPublished == true]
+      | order(publishedAt desc)[0...${MAX_NOTICES}] {
+        _id,
+        title,
+        description,
+        category,
+        priority,
+        publishedAt,
+        "attachmentUrl": attachment.asset->url,
+        "attachmentMimeType": attachment.asset->mimeType
+      }`,
+  );
+};
+
+// Build context from notice descriptions and attached PDFs
+const buildNoticeContext = async (notices) => {
+  if (!notices.length) {
+    return "No published notices were found in the Sanity CMS.";
+  }
+
+  const noticeContexts = [];
+
+  for (const notice of notices) {
+    let pdfText = "";
+
+    if (
+      notice.attachmentUrl &&
+      (!notice.attachmentMimeType ||
+        notice.attachmentMimeType === "application/pdf")
+    ) {
+      try {
+        const processedPdf = await processPdfDocument({
+          _id: notice._id,
+          title: notice.title,
+          description: notice.description,
+          category: notice.category,
+          fileName: `${notice.title || "notice"}.pdf`,
+          documentUrl: notice.attachmentUrl,
+          mimeType: notice.attachmentMimeType || "application/pdf",
+        });
+
+        pdfText = processedPdf.chunks
+          .map((chunk) => chunk.text)
+          .join("\n")
+          .slice(0, MAX_NOTICE_TEXT_LENGTH);
+      } catch (error) {
+        console.warn(
+          `Could not extract PDF for notice "${notice.title}":`,
+          error.message,
+        );
+
+        pdfText = "PDF text could not be extracted.";
+      }
+    }
+
+    noticeContexts.push(`
+NOTICE
+Title: ${notice.title || "Untitled notice"}
+Category: ${notice.category || "General"}
+Priority: ${notice.priority || "Not specified"}
+Published date: ${notice.publishedAt || "Not specified"}
+
+Description:
+${notice.description || "No description provided."}
+
+Attached PDF content:
+${
+  pdfText ||
+  (notice.attachmentUrl
+    ? "No readable PDF text available."
+    : "No PDF attached.")
+}
+
+Attachment URL: ${notice.attachmentUrl || "No attachment"}
+`);
+  }
+
+  return noticeContexts.join("\n\n").slice(0, 30000);
+};
+
 // Generate response using Gemini
-const generateGeminiResponse = async (message, relevantChunks = []) => {
+const generateGeminiResponse = async (
+  message,
+  relevantChunks = [],
+  additionalContext = "",
+) => {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
@@ -49,7 +140,7 @@ const generateGeminiResponse = async (message, relevantChunks = []) => {
     },
   });
 
-  const knowledgeContext = relevantChunks.length
+  const retrievedKnowledge = relevantChunks.length
     ? relevantChunks
         .map(
           (chunk, index) => `
@@ -63,6 +154,22 @@ ${chunk.text}
         )
         .join("\n")
     : "No relevant GEHU college documents were retrieved for this question.";
+
+  const knowledgeContext = additionalContext
+    ? additionalContext
+    : retrievedKnowledge;
+
+  const noticeInstructions = additionalContext
+    ? `
+13. The supplied notice context comes from published GEHU notices in Sanity CMS.
+14. Summarize only the supplied notices. Do not invent dates, deadlines, eligibility,
+    venues, fees, or instructions.
+15. Highlight important deadlines, dates, affected students, required actions,
+    category, and priority when those details are present.
+16. If a notice PDF could not be read, say so and use only its available description.
+17. Include the notice title and attachment URL when useful.
+`
+    : "";
 
   const prompt = `
 You are CampusCopilot, an AI-powered student assistant for
@@ -117,6 +224,8 @@ IMPORTANT INSTRUCTIONS:
 
 12. If relevant information is available in the documents,
     mention the document title or page number when useful.
+
+${noticeInstructions}
 
 Generate the response now.
 `;
@@ -179,9 +288,27 @@ export const sendMessage = async (req, res) => {
 
     const studentQuestion = message.trim();
 
+    // Notice questions use live published Sanity notices
+    if (isNoticeQuestion(studentQuestion)) {
+      const notices = await fetchLatestNotices();
+
+      const noticeContext = await buildNoticeContext(notices);
+
+      const reply = await generateGeminiResponse(
+        studentQuestion,
+        [],
+        noticeContext,
+      );
+
+      return res.status(200).json({
+        success: true,
+        reply,
+      });
+    }
+
     let relevantChunks = [];
 
-    // Decide whether GEHU knowledge retrieval is needed
+    // Existing GEHU knowledge retrieval for other questions
     if (shouldRetrieveCollegeKnowledge(studentQuestion)) {
       const retrievedChunks = await retrieveRelevantChunks(studentQuestion, 5);
 
